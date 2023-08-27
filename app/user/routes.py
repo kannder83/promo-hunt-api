@@ -1,11 +1,8 @@
 import logging
-import asyncio
-from typing import List
-from bson import ObjectId
-from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, status, Query
 
 # API
-from app.user.controller import User
+from app.user.controller import db_user
 
 
 router: APIRouter = APIRouter(
@@ -14,25 +11,65 @@ router: APIRouter = APIRouter(
 )
 
 
+@router.get(
+    path="/",
+    status_code=status.HTTP_200_OK,
+    summary="Get a list of users",
+)
+async def get_users(
+    limit: int = Query(default=10, le=100,
+                       description="Number of users to return"),
+    skip: int = Query(default=0, ge=0, description="Number of users to skip")
+):
+    try:
+        users_list = db_user.get_users(limit, skip)
+
+        return users_list
+
+    except Exception as error:
+        logging.error(error)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+
 @router.post(
     path="/",
     status_code=status.HTTP_200_OK,
     summary="Create a new user",
-    # response_model=models.OutPaginationUser
 )
 async def create_user(
     name: str,
     email: str
 ):
     try:
+        user_status = db_user.create_user(name, email)
 
-        new_user = User()
+        if user_status["msg"] == "error":
+            raise Exception(user_status["data"])
 
-        user_status = new_user.create_user(name, email)
-
-        return {"msg": user_status}
+        return user_status
 
     except Exception as error:
         logging.error(error)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=error)
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+
+@router.delete(
+    path="/{user_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Delete a user by user_id"
+)
+async def delete_user(user_id: str):
+    try:
+        delete_result = db_user.delete_user(user_id)
+
+        if delete_result['msg'] == 'error':
+            raise Exception(delete_result['data'])
+
+        return delete_result
+
+    except Exception as error:
+        logging.error(error)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))

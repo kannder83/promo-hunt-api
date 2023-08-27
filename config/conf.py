@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     playwright_headless: bool
     playwright_sandbox: bool
     chunk_size: int
+    timeout: int
 
     class Config:
         env_file = ".env"

@@ -35,51 +35,69 @@ cp template.env .env
 
 - Completar los datos del documento
 
-```txt
-DATABASE_HOSTNAME="localhost"
+```python
+# API
+MODE_PROD=False
+DEBUG=True
+VERSION="0.9.0"
+DEV_URL="/"
+PROD_URL="/"
+ALLOWED_HOSTS=["*"]
+WORKERS=1
+PROD_PORT=8035
+# DATABASE
+DATABASE_HOSTNAME="mongodb"
 DATABASE_PORT=27017
 DATABASE_PASSWORD="Complex123*"
 DATABASE_USERNAME="mongo"
+DATABASE_WEB_USER="user"
+DATABASE_WEB_PASSWORD="pass"
+# EMAIL
 EMAIL_SENDER="oneemail@gmail.com"
-EMAIL_PASSWORD="s3cVr3PassWord987*!"
+EMAIL_PASSWORD="s3cr3TPassWord987*!"
+# PLAYWRIGHT
+PLAYWRIGHT_HEADLESS=True
+PLAYWRIGHT_SANDBOX=False
+CHUNK_SIZE=1
+TIMEOUT=6000
 ```
 
-## Comandos de la aplicación:
+## Inicializar la aplicación:
 
-- Cargar el archivo con las URL y el ecommerce.
+- Tener instalado Docker
+- Crear la imagen de Docker
+- Iniciar el contenedor de Docker
 
-```bash
-python3 upload_data.py
-# Ingrese el nombre del archivo: data_files/url_format.csv
-```
+## Funcionamiento de la aplicación:
 
-- Crear usuarios para enviar correo:
+A continuación de brinda el detalle para hacer uso de la aplicación.
 
-```bash
-python3 create_user.py
-# Ingrese el nombre: nombre
-# Ingrese el email: nombre@xyz.co
-```
+### Creación de usuario
 
-- Correr el programa de web scraping.
+- Ingresar al endpoint, para crear el user_id se requiere el correo electrónico y un nombre.
+- Al crear el usuario, se le asignará un user_id.
 
-```bash
-python3 main.py
-# PRODUCTS >> Se guardaron: 18 documentos.
-```
+### Busqueda
 
-## Instalar:
+- Realizar la búsqueda desde el endpoint correspondiente.
+- Es necesario contar con el user_id para indicar el usuario que recibirá el correo electrónico.
+- Esperar a que finalice el proceso de búsqueda en las tiendas.
+- Al crear la búsqueda, recibirá un search_id que puede utilizar para hacer seguimiento del proceso hasta que el estado esté en "finished".
+- Los resultados de la búsqueda se irán agregando al diccionario de la búsqueda.
+- Una vez finalizado el proceso de búsqueda, se recibirá un correo electrónico.
 
-```bash
-playwright install
-```
+### Realizar seguimiento
+
+- En el endpoint de seguimiento se utilizará el search_id.
+- Se debe indicar el precio o presupuesto para la búsqueda.
+- El proceso se iniciará en segundo plano.
+- Una vez finalizado el proceso de búsqueda, se enviará un correo electrónico.
+- El diccionario de la búsqueda se actualizará con el valor del precio y la fecha/hora de la consulta.
+- Se informará por correo electrónico acerca de los productos que estén por debajo del precio indicado al inicio.
 
 ## TODO:
 
-- Crear endpoint para validar si ya finalizó el proceso de consulta.
-- Enviar email al finalizar el proceso de consulta.
-- Crear endpoint para visualiar usuarios.
-- Crear un documento en la BD por cada busqueda que relacione el user_id para el envio de notificacion.
-- Crear DRUD para eliminar los productos que no se requiere seguimiento.
-- Crear umbral para comparar precio y notificación.
-- Crear endpoint para activar el seguimiento de productos.
+- Crear CRUD para eliminar los productos que no se requiere seguimiento.
+- Actualizar la documentación.
+- Realizar tests unitarios.
+- Realizar limpieza y borrar lo que no se necesita del programa.

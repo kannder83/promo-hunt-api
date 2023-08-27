@@ -1,21 +1,17 @@
-import httpx
 import logging
 import asyncio
-import pandas as pd
-from tqdm import tqdm
 from bson import ObjectId
 from urllib.parse import quote
 from config.conf import settings
 from app.utils.utils import web_utils
 from selectolax.parser import HTMLParser
-from playwright.async_api import async_playwright
-
 from app.search.controller import db_search
+from playwright.async_api import async_playwright
 
 
 class AmazonScraper():
-    def __init__(self, search_id: str, search_value: str):
-        self.timeout = 7000
+    def __init__(self, search_id: str, search_value: str = None):
+        self.timeout = settings.timeout
         self.search_id = search_id
         self.search_value = search_value
         self.playwright_headless = settings.playwright_headless
@@ -23,126 +19,212 @@ class AmazonScraper():
         self.products: list = []
         self.basic_url: str = "https://www.amazon.com"
 
-    async def store_products(self):
-        pass
+    async def update_product(self, url: str, product_id: str) -> dict:
+        try:
+            async with async_playwright() as playwright:
+                chromium = playwright.chromium
+                browser = await chromium.launch(
+                    headless=self.playwright_headless,
+                    slow_mo=30,
+                    chromium_sandbox=self.playwright_sandbox
+                )
+                context = await browser.new_context(
+                    user_agent='agent',
+                    color_scheme='light',
+                    locale=r"en-US,en;q=0.9",
+                    viewport={'width': 1280, 'height': 1024},
+                    extra_http_headers=web_utils.headers('amazon')
+                )
+                new_page = await context.new_page()
+                response = await new_page.goto(url, timeout=self.timeout)
+                try:
+                    if response.status == 200:
+                        # Esperar a que aparezca el selector
+                        await new_page.wait_for_selector('span.a-size-large.product-title-word-break', timeout=self.timeout)
 
-    async def product_detail(self, url: str):
-        async with async_playwright() as playwright:
-            chromium = playwright.chromium
-            browser = await chromium.launch(
-                headless=self.playwright_headless,
-                slow_mo=30,
-                chromium_sandbox=self.playwright_sandbox
-            )
-            context = await browser.new_context(
-                user_agent='agent',
-                color_scheme='light',
-                locale=r"en-US,en;q=0.9",
-                viewport={'width': 1280, 'height': 1024},
-                extra_http_headers=web_utils.headers('amazon')
-            )
-            product_description: dict = {}
-            new_page = await context.new_page()
-            response = await new_page.goto(self.basic_url+url, timeout=self.timeout)
-            try:
-                if response.status == 200:
-                    # Esperar a que aparezca el selector span.a-size-large.product-title-word-break
-                    await new_page.wait_for_selector('span.a-size-large.product-title-word-break', timeout=self.timeout)
+                        # Obtener el contenido HTML de la página
+                        html_content = await new_page.content()
 
-                    # Se agrega al diccionaro la url
-                    product_description["url"] = self.basic_url+url
+                        # Utilizar Selectolax para analizar el HTML
+                        tree = HTMLParser(html_content)
 
-                    # Obtener el contenido HTML de la página
-                    html_content = await new_page.content()
+                        # Si cuenta con precio lo agrega
+                        price_element = tree.css_first(
+                            'span.a-price.a-text-price')
+                        if price_element:
+                            #  Solo almacena los productos que tengan precio
+                            price_text = price_element.text().strip()
 
-                    # Utilizar Selectolax para analizar el HTML
-                    tree = HTMLParser(html_content)
+                            # Dividir por el símbolo de dólar
+                            price_parts = price_text.split('$')
 
-                    # Encontrar el elemento span.a-size-large.product-title-word-break
-                    product_title_element = tree.css_first(
-                        'span.a-size-large.product-title-word-break')
-                    if product_title_element:
-                        product_description["title"] = product_title_element.text(
-                        ).strip()
+                            # Tomar el último elemento (debe ser el valor numérico)
+                            cleaned_price_text = price_parts[-1]
 
-                    # Encontrar el elemento #bylineInfo para la marca
-                    brand_element = tree.css_first('#bylineInfo')
-                    if brand_element:
-                        brand_text = brand_element.text()
+                            # Revisar que el string contenga ','
+                            if ',' in cleaned_price_text:
+                                cleaned_price_text = cleaned_price_text.replace(
+                                    ',', '')
 
-                        if 'Visit' in brand_text:
-                            cleaned_brand_text = brand_text.replace(
-                                'Visit the ', '')  # Eliminar 'Visit the '
-                            product_description["brand"] = cleaned_brand_text
-                        else:
-                            cleaned_brand_text = brand_text.replace(
-                                'Brand: ', '')  # Eliminar la etiqueta 'Brand:'
-                            product_description["brand"] = cleaned_brand_text
-
-                    # Encontrar el elemento span#acrPopover>span>a>span para las calificaciones
-                    ratings_element = tree.css_first(
-                        'span#acrPopover > span > a > span')
-                    if ratings_element:
-                        product_description["ratings"] = float(
-                            ratings_element.text())
-
-                    # Encontrar el elemento div#productDescription>p>span para la descripción
-                    description_element = tree.css_first(
-                        'div#productDescription > p > span')
-                    if description_element:
-                        product_description["description"] = description_element.text(
-                        )
-
-                    # Si cuenta con precio lo agrega
-                    price_element = tree.css_first(
-                        'span.a-price.a-text-price')
-                    if price_element:
-                        #  Solo almacena los productos que tengan precio
-                        price_text = price_element.text().strip()
-                        # Dividir por el símbolo de dólar
-                        price_parts = price_text.split('$')
-                        # Tomar el último elemento (debe ser el valor numérico)
-                        cleaned_price_text = price_parts[-1]
-                        price_float = float(cleaned_price_text)
-                        product_description["price"] = [
-                            {
+                            #  Se agrega el precio como un float
+                            price_float = float(cleaned_price_text)
+                            tracking_price = {
                                 "price": price_float,
                                 "date": web_utils.get_time_now()
                             }
-                        ]
-                        product_description["ecommerce"] = 'amazon'
 
-                        db_search.update_search(
-                            self.search_id, product_description)
+                            #  Se actualiza el producto con nuevo registro de fecha y hora
+                            db_search.update_search_product(
+                                self.search_id, product_id, tracking_price)
 
-                        logging.info("Store product")
+                            logging.info("Updated product: Amazon")
 
-                        self.products.append(product_description)
-                    await new_page.close()
-                else:
-                    await new_page.close()
-                    raise Exception(f"Error: {response.status}")
+                            return {
+                                "msg": "ok",
+                                "data": {"ecommerce": "amazon"}
+                            }
 
-            except Exception as error:
+                        await new_page.close()
+                    else:
+                        await new_page.close()
+                        raise Exception(f"Error: {response.status}")
+                except Exception as error:
+                    await context.close()
+                    await browser.close()
+                    logging.error(f"Error: {error}")
+                    return {
+                        "msg": "error",
+                        "data": error
+                    }
+
                 await context.close()
                 await browser.close()
-                logging.error(f"Error: {error}")
-                return {
-                    "data": error,
-                    "msg": "error"
-                }
-            await context.close()
-            await browser.close()
+        except Exception as error:
+            logging.error(f"Error: {error}")
+
+    async def product_detail(self, url: str) -> None:
+        try:
+            async with async_playwright() as playwright:
+                chromium = playwright.chromium
+                browser = await chromium.launch(
+                    headless=self.playwright_headless,
+                    slow_mo=30,
+                    chromium_sandbox=self.playwright_sandbox
+                )
+                context = await browser.new_context(
+                    user_agent='agent',
+                    color_scheme='light',
+                    locale=r"en-US,en;q=0.9",
+                    viewport={'width': 1280, 'height': 1024},
+                    extra_http_headers=web_utils.headers('amazon')
+                )
+                product_description: dict = {}
+                new_page = await context.new_page()
+                response = await new_page.goto(self.basic_url+url, timeout=self.timeout)
+                try:
+                    if response.status == 200:
+                        # Esperar a que aparezca el selector
+                        await new_page.wait_for_selector('span.a-size-large.product-title-word-break', timeout=self.timeout)
+
+                        # Se agrega al diccionaro la url
+                        product_description["url"] = self.basic_url+url
+
+                        # Obtener el contenido HTML de la página
+                        html_content = await new_page.content()
+
+                        # Utilizar Selectolax para analizar el HTML
+                        tree = HTMLParser(html_content)
+
+                        # Encontrar el elemento para el title
+                        product_title_element = tree.css_first(
+                            'span.a-size-large.product-title-word-break')
+                        if product_title_element:
+                            product_description["title"] = product_title_element.text(
+                            ).strip()
+
+                        # Encontrar el elemento #bylineInfo para la marca
+                        brand_element = tree.css_first('#bylineInfo')
+                        if brand_element:
+                            brand_text = brand_element.text()
+
+                            if 'Visit' in brand_text:
+                                cleaned_brand_text = brand_text.replace(
+                                    'Visit the ', '')  # Eliminar 'Visit the '
+                                product_description["brand"] = cleaned_brand_text
+                            else:
+                                cleaned_brand_text = brand_text.replace(
+                                    'Brand: ', '')  # Eliminar la etiqueta 'Brand:'
+                                product_description["brand"] = cleaned_brand_text
+
+                        # Encontrar el elemento para las calificaciones
+                        ratings_element = tree.css_first(
+                            'span#acrPopover > span > a > span')
+                        if ratings_element:
+                            product_description["ratings"] = float(
+                                ratings_element.text())
+
+                        # Encontrar el elemento para la descripción
+                        description_element = tree.css_first(
+                            'div#productDescription > p > span')
+                        if description_element:
+                            product_description["description"] = description_element.text(
+                            )
+
+                        # Si cuenta con precio lo agrega
+                        price_element = tree.css_first(
+                            'span.a-price.a-text-price')
+                        if price_element:
+                            # Se asigna un ObjectId para identificar el product
+                            product_description['product_id'] = str(ObjectId())
+                            #  Solo almacena los productos que tengan precio
+                            price_text = price_element.text().strip()
+                            # Dividir por el símbolo de dólar
+                            price_parts = price_text.split('$')
+                            # Tomar el último elemento (debe ser el valor numérico)
+                            cleaned_price_text = price_parts[-1]
+                            # Revisar que el string contenga ','
+                            if ',' in cleaned_price_text:
+                                cleaned_price_text = cleaned_price_text.replace(
+                                    ',', '')
+
+                            price_float = float(cleaned_price_text)
+                            product_description["price"] = [
+                                {
+                                    "price": price_float*4100,
+                                    "date": web_utils.get_time_now()
+                                }
+                            ]
+                            product_description["ecommerce"] = 'amazon'
+
+                            db_search.update_search(
+                                self.search_id, product_description)
+
+                            logging.info("Store product: Amazon")
+
+                            self.products.append(product_description)
+                        await new_page.close()
+                    else:
+                        await new_page.close()
+                        raise Exception(f"Error: {response.status}")
+                except Exception as error:
+                    logging.error(f"Error: {error}")
+
+                await context.close()
+                await browser.close()
+        except Exception as error:
+            logging.error(f"Error: {error}")
 
     async def search_products(self, context) -> dict:
         url_list: list = []
 
         try:
             encoded_search_term: str = quote(self.search_value)
+            if not encoded_search_term:
+                raise Exception("There is no value for the search term.")
 
             new_page = await context.new_page()
 
-            url = f"{self.basic_url}/s?k={encoded_search_term}&s=price-asc-rank&__mk_es_US=ÅMÅŽÕÑ&sprefix={encoded_search_term}&ref=sr_st_price-asc-rank"
+            url: str = f"{self.basic_url}/s?k={encoded_search_term}&s=price-asc-rank&__mk_es_US=ÅMÅŽÕÑ&sprefix={encoded_search_term}&ref=nb_sb_noss_2"
             # logging.info(url)
             response = await new_page.goto(url, timeout=self.timeout)
             if response.status == 200:
@@ -190,7 +272,7 @@ class AmazonScraper():
                 "msg": "error"
             }
 
-    async def obtain_products(self):
+    async def obtain_products(self) -> dict:
         product_url: dict = {}
         tasks: list = []
         chunk_size: int = settings.chunk_size

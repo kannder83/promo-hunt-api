@@ -4,7 +4,5 @@ uvicorn[standard]==0.23.2
 httpx==0.24.1
 playwright==1.37.0
 selectolax==0.3.16
-tqdm==4.65.0
 pymongo==4.3.3
 pydantic[dotenv]==1.10.7
-pandas==2.0.1

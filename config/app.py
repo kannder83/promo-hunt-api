@@ -53,7 +53,7 @@ def get_application():
 
         if settings.debug:
             logging.basicConfig(
-                level=logging.DEBUG,
+                level=logging.INFO,
                 format="%(asctime)s %(levelname)s %(funcName)s %(message)s"
             )
         else:
