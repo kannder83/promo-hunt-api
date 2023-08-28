@@ -1,6 +1,6 @@
 # PROMO HUNT API
 
-Permite a los usuarios obtener información sobre productos relacionados con búsquedas en sitios de comercio electrónico. La API está diseñada para proporcionar una interfaz para consultar y acceder a estos datos, con manejo de errores y devolución de respuestas HTTP apropiadas en caso de éxito o fallo.
+Esta API permite a los usuarios obtener información sobre productos relacionados con búsquedas en sitios de comercio electrónico. La API está diseñada para proporcionar una interfaz que permita consultar y acceder a estos datos, con manejo de errores y respuestas HTTP apropiadas tanto en caso de éxito como de fallo.
 
 ## Tecnologias utilizadas
 
@@ -13,7 +13,7 @@ Permite a los usuarios obtener información sobre productos relacionados con bú
 
 ## Programas necesarios:
 
-- Revisar que cuente con una version correspondientes:
+- Asegúrate de tener las siguientes versiones:
 
 ```bash
 python3 --version
@@ -83,11 +83,11 @@ TIMEOUT=6000
 
 Nota:
 
-- EMAIL_SENDER y EMAIL_PASSWORD son los datos necesarios para la conexión SMTP de email. La aplicación se probo usando gmail.
+- Los campos EMAIL_SENDER y EMAIL_PASSWORD son necesarios para la conexión SMTP de correo electrónico. La aplicación se probó utilizando Gmail.
 
 ## Inicializar la aplicación:
 
-- Tener instalado Docker
+- Asegúrate de tener Docker instalado:
 
 ```bash
 docker --version
@@ -203,7 +203,7 @@ Ingresar a la url: [localhost:8081](http://localhost:8081) para visualizar la ba
 
 ### 3. Realizar seguimiento
 
-Para realizar el seguimiento de los productos para determinar si el precio ha disminuido, se tiene el siguiente procedimiento.
+Para rastrear productos y determinar si han disminuido de precio, sigue estos pasos:
 
 - En el endpoint de seguimiento se utilizará el search_id.
 
@@ -231,12 +231,12 @@ pytest -v
 
 ![Texto alternativo](doc/screen_15.jpg)
 
-Nota: Se realizaron algunos test pero no se completaron para el 100% de la aplicación.
+Nota: Se realizaron algunas pruebas, aunque no se completaron para el 100% de la aplicación.
 
 ## ¿Qué quedo pendiente?
 
-Una de las funcionalidades de la aplicación es poder hacer seguimiento a los productos, y poder notificar en caso de que estos bajen. De momento este proceso no quedo activo.
+Una de las funcionalidades pendientes es la capacidad de rastrear productos y notificar si sus precios bajan. Esta función aún no está activa.
 
-También poder eliminar productos a los que no se quiera hacer seguimiento o productos cuyo valor esta por fuera de ciertos rangos indicados por el usuario.
+Además, está pendiente la posibilidad de eliminar productos de seguimiento y aquellos cuyos precios estén fuera de los rangos establecidos por el usuario.
 
-Espero poder más adelante completar el programa agregando lo que quedo pendiente.
+Espero poder completar estas características en futuras actualizaciones.
