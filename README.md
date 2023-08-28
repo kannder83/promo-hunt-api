@@ -120,7 +120,7 @@ A continuación de brinda el detalle para hacer uso de la aplicación.
 
 Ingresar a la url: [localhost:8000](http://localhost:8000) para la API.
 
-Ingresar a la url: [localhost:8081](http://localhost:8081) para visualizar la base de datos mongo.
+Ingresar a la url: [localhost:8081](http://localhost:8081) para visualizar la base de datos mongo (las claves web estan en el archivo develop.yml).
 
 ### 1. Creación de usuario
 
