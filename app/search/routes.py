@@ -1,6 +1,6 @@
 import logging
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Query, Path
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 
 # APP
 from app.user.controller import db_user
@@ -18,7 +18,6 @@ router: APIRouter = APIRouter(
     path="/all",
     status_code=status.HTTP_200_OK,
     summary="Get all search documents",
-    # response_model=models.OutPaginationUser
 )
 async def get_all_search(
     limit: int = 10,
@@ -83,7 +82,6 @@ async def products_by_search_id(
     path="/",
     status_code=status.HTTP_200_OK,
     summary="Search",
-    # response_model=models.OutPaginationUser
 )
 async def search_in_pages(
     background_tasks: BackgroundTasks,
@@ -121,7 +119,6 @@ async def search_in_pages(
     path="/tracking/{search_id}",
     status_code=status.HTTP_200_OK,
     summary="tracking",
-    # response_model=models.OutPaginationUser
 )
 async def tracking_products(
     search_id: str,

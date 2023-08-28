@@ -225,7 +225,7 @@ class AmazonScraper():
             new_page = await context.new_page()
 
             url: str = f"{self.basic_url}/s?k={encoded_search_term}&s=price-asc-rank&__mk_es_US=ÅMÅŽÕÑ&sprefix={encoded_search_term}&ref=nb_sb_noss_2"
-            # logging.info(url)
+
             response = await new_page.goto(url, timeout=self.timeout)
             if response.status == 200:
 

@@ -147,8 +147,6 @@ class MercadoLibreScraper():
                     href = a_element.attributes.get("href")
                     url_list.append({'url': href})
 
-                # logging.info(f'url_list: {url_list}')
-
                 # Crear una lista para almacenar las URLs únicas y válidas
                 filtered_urls = []
 
@@ -165,9 +163,9 @@ class MercadoLibreScraper():
                         seen_urls.add(url)
 
                 # Verificar la cantidad de elementos de la lista
-                if len(filtered_urls) > 5:
+                if len(filtered_urls) > 20:
                     # Tomar los primeros elementos
-                    filtered_urls = filtered_urls[:5]
+                    filtered_urls = filtered_urls[:20]
                 else:
                     # Tomar todos los elementos de la lista
                     filtered_urls = filtered_urls[:]

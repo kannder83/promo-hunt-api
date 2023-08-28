@@ -102,8 +102,6 @@ class Utils():
             'viewport-width': '1469',
         }
 
-        # logging.info(f"Headers: {headers[portal]}")
-
         return headers[portal]
 
 

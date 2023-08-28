@@ -6,3 +6,4 @@ playwright==1.37.0
 selectolax==0.3.16
 pymongo==4.3.3
 pydantic[dotenv]==1.10.7
+pytest==7.4.0

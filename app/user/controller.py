@@ -104,7 +104,6 @@ class User():
 
     def get_users(self, limit: int = 10, skip: int = 0) -> dict:
         """
-        Retorna una lista de usuarios con opciones de limit y skip.
         """
         serialize_users: list = []
         try:
